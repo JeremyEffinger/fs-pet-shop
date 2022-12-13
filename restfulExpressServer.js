@@ -62,6 +62,24 @@ app.post("/pets", function (req, res, next) {
   }
 });
 
+app.patch("/pets/:id", function (req, res, next) {
+  const { id } = req.params;
+  sql`UPDATE pets SET ${sql(req.body)} WHERE id=${id} RETURNING *`.then(
+    (result) => {
+      console.log(result.statement.string);
+      res.send(result[0]);
+    }
+  );
+});
+
+app.delete("/pets/:id", function (req, res, next) {
+  const { id } = req.params;
+  sql` DELETE FROM pets WHERE id=${id}`.then((result) => {
+    console.log(result.statement.string);
+    res.send(result[0]);
+  });
+});
+
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).send("Internal Server Error");
