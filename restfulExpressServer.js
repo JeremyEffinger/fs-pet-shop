@@ -21,45 +21,51 @@ app.get("/", (req, res) => {
   res.send("Welcome the petshop");
 });
 
-app.get("/pets", (req, res) => {
-  sql`SELECT * FROM pets`.then((pets) => {
-    console.log("pets", pets);
-    res.json(pets);
-  });
+app.get("/pets", (req, res, next) => {
+  sql`SELECT * FROM pets`
+    .then((pets) => {
+      console.log("pets", pets);
+      res.json(pets);
+    })
+    .catch(next);
 });
 
-app.get("/pets/:id", (req, res) => {
+app.get("/pets/:id", (req, res, next) => {
   let id = req.params.id;
-  sql`SELECT * FROM pets WHERE id=${id}`.then((pet) => {
-    if (pet.length === 0) {
-      res.set("Content-Type", "text/plain");
-      res.status(404);
-      res.send("Not Found");
-    }
-    res.json(pet[0]);
-  });
+  sql`SELECT * FROM pets WHERE id=${id}`
+    .then((pet) => {
+      if (pet.length === 0) {
+        res.set("Content-Type", "text/plain");
+        res.status(404);
+        res.send("Not Found");
+      }
+      res.json(pet[0]);
+    })
+    .catch(next);
 });
 
-app.post("/pets", function (req, res) {
+app.post("/pets", function (req, res, next) {
   const requiredKeys = ["age", "name", "kind"];
-
   if (
     typeof req.body.age === "number" &&
     requiredKeys.every((key) => req.body.hasOwnProperty(key))
   ) {
-    sql`INSERT INTO pets (age, name, kind) VALUES (${req.body.age},${req.body.name},${req.body.kind});`.then(
-      () => {
+    sql`INSERT INTO pets (age, name, kind) VALUES (${req.body.age},${req.body.name},${req.body.kind}) RETURNING *;`
+      .then((pet) => {
         res.status(201);
-        res.send(req.body);
-      }
-    );
-    //res.json(sql);
+        res.json(pet[0]);
+      })
+      .catch(next);
   } else {
     res.status(400).send("Bad Request");
     console.log(req.body);
   }
 });
 
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).send("Internal Server Error");
+});
 app.use((req, res, next) => {
   res.contentType("text/plain").status(404).send("Not Found");
 });
